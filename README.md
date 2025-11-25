@@ -11,12 +11,12 @@ crie uma branch com o nome da alteração que está fazendo (Ex. branch mudando_
 
 
 # Divisão de tarefas:
-Arthur:
+Arthur: Como a Unidade de Controle opera ( parece que é uma FSM, mas a gente tem que ver claramente o que é)
 
-Davi José:
+Davi José: Como o LCD opera (olhar datasheet e as explicações de Abel na descrição do projeto)
 
-Davi Lima:
+Davi Lima: Funcionamento da Memória (como integrar a memória ao sistema pra poder armazenar os dados que estão sendo contabilizados)
 
-Gabriel:
+Gabriel: Pensar como fazer a ULA em verilog baseado nas especificações que Abel colocou(ver quais módulos criar)
 
-Matheus:
+Matheus: Pensar arquitetura do sistema (como ele vai se comunicar internamente) 
