@@ -5,9 +5,9 @@ Explicação dos módulos
 # Divisão de tarefas:
 Arthur:
 
-Davi J:
+Davi José:
 
-Davi L:
+Davi Lima:
 
 Gabriel:
 
