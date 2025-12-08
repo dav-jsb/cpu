@@ -43,15 +43,15 @@ module memoryCPU (
                
                 default: begin end
 					 
-					 CLEAR: begin
-						for (i = 0; i < 16; i = i + 1) begin
-							register[i] <= 16'd0;
-						
-						end
+				CLEAR: begin
+					for (i = 0; i < 16; i = i + 1) begin
+						register[i] <= 16'd0;
 						
 					end
+						
+				end
             
-				endcase
+			endcase
         
 		  end
     
@@ -59,8 +59,9 @@ module memoryCPU (
 	 
 	 always @ (*) begin
 	 
-    valorSaidaA = register[entrada1];
+    	valorSaidaA = register[entrada1];
 	 
 	 end
+
 
 endmodule
