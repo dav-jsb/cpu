@@ -21,7 +21,7 @@ module memoryCPU (
 
     // Escrita Síncrona (Na borda do clock)
     always @ (posedge clock or negedge reset) begin // transição do clock sempre de subida e do reset sempre que for de descida
-        if (reset) begin
+        if (~reset) begin
             for (i = 0; i < 16; i = i + 1) begin
                 register[i] <= 16'd0;
             end
@@ -36,3 +36,4 @@ module memoryCPU (
 
 
 endmodule
+
