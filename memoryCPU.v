@@ -30,9 +30,10 @@ module memoryCPU (
         end
     end
 	 
-	 //Sempre sai um valor de leitura para algum local, mas só será usado essa valor da forma esperada conforme o OPcode 
+	 //Sempre sai um valor de leitura para algum local, mas só será usado essa valor da forma esperada conforme o OPcode que tenha a necessidade de ler algum valor de reg na memoria para usá-lo
     assign read_data_1 = register[read_reg_addr_1]; 
     assign read_data_2 = register[read_reg_addr_2];
 
 
 endmodule
+
