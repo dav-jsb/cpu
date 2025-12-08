@@ -29,7 +29,7 @@ module memoryCPU (
 
     always @ (posedge clock or posedge reset) 
     begin
-        if (reset == 1'b1 || OPcoDE == CLEAR) begin
+        if (reset) begin
             for (i = 0; i < 16; i = i + 1) begin
                 register[i] <= 16'd0;
             end
@@ -42,9 +42,20 @@ module memoryCPU (
                 end
                
                 default: begin end
-            endcase
-        end
-    end
+					 
+					 CLEAR: begin
+						for (i = 0; i < 16; i = i + 1) begin
+							register[i] <= 16'd0;
+						
+						end
+						
+					end
+            
+				endcase
+        
+		  end
+    
+	 end
 	 
 	 always @ (*) begin
 	 
