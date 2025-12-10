@@ -10,10 +10,7 @@ module miniCPU (
     output LCD_RW,
     output LCD_EN,
     output LCD_ON,
-    output LCD_BLON,
-
-    // Outputs Debug
-    output [15:0] leds_debug
+    output LCD_BLON
 );
 
     // --- 1. Decodificação ---
@@ -175,7 +172,4 @@ module miniCPU (
             endcase
         end
     end
-    
-    // Debug
-    assign leds_debug = alu_result; 
-endmodule
+endmodule 
