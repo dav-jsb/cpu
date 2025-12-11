@@ -20,10 +20,11 @@ module aluCPU(
                 result = data1 - data2;
             end
             MUL: begin
-                mul_full = $signed(data1) * $signed(data2); //executa a multiplicação, mas com o $ para tratar operandos de tamanhos diferentes
+                mul_full = $signed(data1) * $signed(data2); //executa a multiplicação, mas com o $ para tratar valores com sinal
                 result = mul_full[15:0]; //iguala no reg de 16 bits o valor da multiplicação
             end
             default: result = 16'd0; //boa prática definir o valor 0 como default
         endcase 
     end 
 endmodule 
+
