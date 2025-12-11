@@ -1,6 +1,6 @@
 module memoryCPU (
     input clock,
-    input reset, // LIGAR/DESLIGAR
+    input reset, // LIGAR/DESLIGAR/CLEAR
     
     // Escrita
     input regWrite,              // Sinal de controle: 1 para escrever, 0 para ler
@@ -37,3 +37,4 @@ module memoryCPU (
     assign read_data_2 = register[read_reg_addr_2];
 	
 endmodule
+
