@@ -67,16 +67,8 @@ module miniCPU (
     // O valor a ser mostrado depende da instrução: se for LOAD, mostra o valor imediato. Display -> valor lido do Reg na memoria.
     //todos os outros casos são de valores resultantes de operações na ULA
     reg [15:0] current_lcd_value;
-    // Aqui define o valor a ser enviado ao LCD antes do clk
-    always @(*) begin
-        if (opcode == LOAD)
-            current_lcd_value = imediato;
-        else if (opcode == DISPLAY)
-            current_lcd_value = mem_read_data1;
-        else
-            current_lcd_value = alu_result;
-    end
-    \\modulo de LCD
+
+    //modulo de LCD
     lcd_controller LCD (
         .clk(clk),
         .reset_n(ligar),
@@ -93,12 +85,22 @@ module miniCPU (
         .lcd_on(LCD_ON),
         .lcd_blon(LCD_BLON)
     );
-    // Separamos em uma FSM principal na qual a UC senpre atua integralmente
-    //Nela, temos o estado inicial, o de execução, escrita no sistema e espera para lançar ao LCD
+    
+    //este é o Bloco Combinacional; nele estamos tratando o valor que vai sair para o LCD a partir do sinal no OPCODE
+    always @(*) begin
+        if (opcode == LOAD)
+            current_lcd_value = imediato;
+        else if (opcode == DISPLAY)
+            current_lcd_value = mem_read_data1;
+        else
+            current_lcd_value = alu_result;
+    end
+
+    // Este é o bloco Sequencial, no qual definimos os estados e as transições
     reg [2:0] state;
     parameter [2:0] IDLE = 3'd0, EXECUTE = 3'd1, WRITE = 3'd2, WAIT_RELEASE = 3'd3;                 
     always @(posedge clk or negedge ligar) begin 
-        if (!ligar) begin
+        if (~ligar) begin
             state <= IDLE;
             write_enable <= 0;
             soft_reset <= 0;
@@ -106,17 +108,18 @@ module miniCPU (
         end
         else begin
             case(state)
-                IDLE: begin
+                IDLE: begin //estado de espera
                     write_enable <= 0;
                     soft_reset <= 0;
                     lcd_start_signal <= 0; // Garante que o sinal de start fique em LOW
-
+                    
                     //sempre que aperta o botão, passa o estado da máquina para o estado de execução
                     if (!enviar) begin
                         state <= EXECUTE;
                     end
                 end
-                EXECUTE: begin
+                EXECUTE: begin //Execução na ULA
+                    
                     // O estado de Execute opera em cima das operações próprias da ULA; as operações de interação DIRETA
                     //na memória são tratadas em WRITE
                     case(opcode)
@@ -129,7 +132,8 @@ module miniCPU (
                     endcase
                     state <= WRITE;
                 end
-                WRITE: begin
+                WRITE: begin //Escrita na memoria ou lançamento direto ao LCD
+                    
                     // Capturamos os valores neste momento exato em que o resultado está pronto
                     lcd_reg_idx <= current_lcd_reg_idx; //indice do registrador a ser mostrado no LCD
                     lcd_value_reg <= current_lcd_value; //valor contido no registrador que está sendo mostrado no LCD
@@ -151,13 +155,14 @@ module miniCPU (
                     end
                     state <= WAIT_RELEASE;
                 end
-                WAIT_RELEASE: begin
+                WAIT_RELEASE: begin //estado de debboucing do botão de enviar
+                    
                     write_enable <= 0; // desliga o sinal de escrita no sistema
                     soft_reset <= 0; // desliga o sinal de reinicio do sistema
                     lcd_start_signal <= 0; // Desliga o sinal de start do LCD 
                     
                     if (enviar) begin // Somente quando o botão é SOLTO ele será então enviado ao LCD com as informações
-                        state <= IDLE;
+                        state <= IDLE; //retorna ao estado de espera
                     end
                 end
             endcase
