@@ -1,8 +1,8 @@
 module miniCPU (
-    input [17:0] switches,
-    input ligar,      // Botão físico de Reset (KEY[0])
-    input enviar,     // Botão de Enviar (KEY[1])
-    input clk,
+    input [17:0] switches, //entrada de Switches
+    input ligar,      // Botão Ligar / Desligar
+    input enviar,     // Botão de Enviar 
+    input clk,        // clk do sistema
     
     // Outputs para LCD
     output [7:0] LCD_DATA,
@@ -13,7 +13,7 @@ module miniCPU (
     output LCD_BLON
 );
 
-    // --- 1. Decodificação ---
+    // fios de decodificação no sistema
     wire [2:0] opcode = switches [17:15];
     wire [3:0] reg_dest = switches [14:11];
     wire [3:0] reg_input1 = switches[10:7];
@@ -27,19 +27,17 @@ module miniCPU (
     wire [15:0] mem_read_data2;
     wire [15:0] alu_result;
     
-    // Sinais de Controle
+    // Sinais de controle do sistema
     reg write_enable;
     reg [15:0] mem_write;
     reg [1:0] alu_selector;
     reg [15:0] alu_input_2;
     reg soft_reset; 
-    
-    wire memory_reset_signal = ligar & ~soft_reset;
+    wire memory_reset_signal = ligar & ~soft_reset; //porta logica ativa em 0 para resetar a memoria -> ativa em CLEAR ou Desligando o sist.
 
     parameter [2:0] LOAD = 3'b000, ADD = 3'b001, ADDI = 3'b010, SUB = 3'b011,
-                    SUBI = 3'b100, MUL = 3'b101, CLEAR = 3'b110, DISPLAY = 3'b111;
-                        
-    // --- Instanciação dos Módulos ---
+                    SUBI = 3'b100, MUL = 3'b101, CLEAR = 3'b110, DISPLAY = 3'b111;                   
+    //modulo de memoria
     memoryCPU Memo (
         .clock(clk),
         .reset(memory_reset_signal),
@@ -51,31 +49,25 @@ module miniCPU (
         .read_data_1(mem_read_data1),
         .read_data_2(mem_read_data2)
     );
-    
+    //modulo de ULA
     aluCPU ALU (
         .data1(mem_read_data1),
         .data2(alu_input_2),
         .sel(alu_selector),
         .result(alu_result)
     );
-    
-    // --- Integração LCD ---
+    // O LCD deve ser integrado com um ENABLE de start e puxando o de indice do registrador e o valor contido nele
     reg lcd_start_signal;
     reg [15:0] lcd_value_reg;
     reg [3:0] lcd_reg_idx;
     
-    // O registrador a ser mostrado no LCD depende da instrução:
-    // DISPLAY: Mostra o registrador fonte (Src1)
-    // OUTROS: Mostra o registrador destino (Dest)
+    //se for Display, deve mostrar o registrador de fonte; todos os outros casos mostra o registrador de destino
     wire [3:0] current_lcd_reg_idx = (opcode == DISPLAY) ? reg_input1 : reg_dest;
     
-    // O valor a ser mostrado depende da instrução:
-    // LOAD: Valor Imediato
-    // DISPLAY: Valor lido da memória (Src1)
-    // OUTROS: Resultado da ULA
+    // O valor a ser mostrado depende da instrução: se for LOAD, mostra o valor imediato. Display -> valor lido do Reg na memoria.
+    //todos os outros casos são de valores resultantes de operações na ULA
     reg [15:0] current_lcd_value;
-
-    // Lógica combinacional para definir o valor enviado ao LCD antes do clock
+    // Aqui define o valor a ser enviado ao LCD antes do clk
     always @(*) begin
         if (opcode == LOAD)
             current_lcd_value = imediato;
@@ -84,15 +76,16 @@ module miniCPU (
         else
             current_lcd_value = alu_result;
     end
-
+    \\modulo de LCD
     lcd_controller LCD (
         .clk(clk),
         .reset_n(ligar),
         .start(lcd_start_signal),
         .opcode(opcode),
         .reg_idx(lcd_reg_idx),  // Usamos registradores internos para manter o valor estável
-        .value(lcd_value_reg),  // Usamos registradores internos
+        .value(lcd_value_reg),  
         
+        //Pinagem direta dos outputs do LCD e do modulo da CPU
         .lcd_data(LCD_DATA),
         .lcd_rs(LCD_RS),
         .lcd_rw(LCD_RW),
@@ -100,12 +93,11 @@ module miniCPU (
         .lcd_on(LCD_ON),
         .lcd_blon(LCD_BLON)
     );
-
-    // --- Máquina de Estados Principal ---
+    // Separamos em uma FSM principal na qual a UC senpre atua integralmente
+    //Nela, temos o estado inicial, o de execução, escrita no sistema e espera para lançar ao LCD
     reg [2:0] state;
-    parameter [2:0] IDLE = 3'd0, EXECUTE = 3'd1, WRITE = 3'd2, WAIT_RELEASE = 3'd3;
-                        
-    always @(posedge clk or negedge ligar) begin // Usei posedge clk para alinhar com o resto
+    parameter [2:0] IDLE = 3'd0, EXECUTE = 3'd1, WRITE = 3'd2, WAIT_RELEASE = 3'd3;                 
+    always @(posedge clk or negedge ligar) begin 
         if (!ligar) begin
             state <= IDLE;
             write_enable <= 0;
@@ -117,15 +109,16 @@ module miniCPU (
                 IDLE: begin
                     write_enable <= 0;
                     soft_reset <= 0;
-                    lcd_start_signal <= 0; // Garante que o sinal de start baixe
-                    
+                    lcd_start_signal <= 0; // Garante que o sinal de start fique em LOW
+
+                    //sempre que aperta o botão, passa o estado da máquina para o estado de execução
                     if (!enviar) begin
                         state <= EXECUTE;
                     end
                 end
-                
                 EXECUTE: begin
-                    // Configuração da ULA
+                    // O estado de Execute opera em cima das operações próprias da ULA; as operações de interação DIRETA
+                    //na memória são tratadas em WRITE
                     case(opcode)
                         ADD: begin alu_selector <= 2'b00; alu_input_2 <= mem_read_data2; end
                         ADDI: begin alu_selector <= 2'b00; alu_input_2 <= imediato; end
@@ -136,19 +129,19 @@ module miniCPU (
                     endcase
                     state <= WRITE;
                 end
-                
                 WRITE: begin
-                    // --- ATUALIZAÇÃO DO LCD ---
                     // Capturamos os valores neste momento exato em que o resultado está pronto
-                    lcd_reg_idx <= current_lcd_reg_idx;
-                    lcd_value_reg <= current_lcd_value;
-                    lcd_start_signal <= 1; // Dispara o pulso para o módulo LCD iniciar
+                    lcd_reg_idx <= current_lcd_reg_idx; //indice do registrador a ser mostrado no LCD
+                    lcd_value_reg <= current_lcd_value; //valor contido no registrador que está sendo mostrado no LCD
+                    lcd_start_signal <= 1; // ENABLE para o LCD inicializar
                     
-                    // Lógica de Memória Original
+                    // Ativa o reset da memoria para reiniciar todos os registradores
                     if (opcode == CLEAR) begin
                         soft_reset <= 1;
                         write_enable <= 0;
                     end
+                    //se não for opcode de clear, as unicas possiblidades de tratamente nesse estado é o de LOAD um novo valor
+                    //OU de uma saída ligada ao valor da ULA
                     else if (opcode != DISPLAY) begin
                         write_enable <= 1;
                         if (opcode == LOAD)
@@ -156,16 +149,14 @@ module miniCPU (
                         else
                             mem_write <= alu_result;
                     end
-                    
                     state <= WAIT_RELEASE;
                 end
-                
                 WAIT_RELEASE: begin
-                    write_enable <= 0;
-                    soft_reset <= 0;
-                    lcd_start_signal <= 0; // Desliga o sinal de start do LCD (ele já capturou os dados)
+                    write_enable <= 0; // desliga o sinal de escrita no sistema
+                    soft_reset <= 0; // desliga o sinal de reinicio do sistema
+                    lcd_start_signal <= 0; // Desliga o sinal de start do LCD 
                     
-                    if (enviar) begin // Botão solto (lógica pull-up, enviar=1 é solto)
+                    if (enviar) begin // Somente quando o botão é SOLTO ele será então enviado ao LCD com as informações
                         state <= IDLE;
                     end
                 end
