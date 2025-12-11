@@ -19,7 +19,9 @@ module memoryCPU (
     reg [15:0] register [0:15]; // -> MEMORIA
     integer i;
 	 
-    always @ (posedge clock or negedge reset) begin // transição do clock sempre de subida e do reset sempre que for de descida
+    always @ (posedge clock or negedge reset) begin
+
+		//sinal de reset -> tratado quando Desligar for apertado ou Clear identificado no OPCODE
         if (~reset) begin
             for (i = 0; i < 16; i = i + 1) begin
                 register[i] <= 16'd0;
@@ -29,11 +31,9 @@ module memoryCPU (
             register[write_reg_addr] <= write_data;
         end
     end
-	 
-	 //Sempre sai um valor de leitura para algum local, mas só será usado essa valor da forma esperada conforme o OPcode que tenha a necessidade de ler algum valor de reg na memoria para usá-lo
+
+	//valores de saida de LEITURA -> apenas usados em casos controlados na CPU
     assign read_data_1 = register[read_reg_addr_1]; 
     assign read_data_2 = register[read_reg_addr_2];
-
-
+	
 endmodule
-
